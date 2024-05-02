@@ -472,7 +472,7 @@ def main():
                 cache_dir=model_args.cache_dir,
                 token=model_args.token,
                 num_proc=data_args.preprocessing_num_workers,
-            ).select(range(200_000))
+            )
             datasets["validation"] = load_dataset(
                 data_args.dataset_name,
                 data_args.dataset_config_name,
@@ -480,7 +480,7 @@ def main():
                 cache_dir=model_args.cache_dir,
                 token=model_args.token,
                 num_proc=data_args.preprocessing_num_workers,
-            ).select(range(0, 80))
+            )
     else:
         data_files = {}
         if data_args.train_file is not None:

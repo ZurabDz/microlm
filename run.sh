@@ -16,7 +16,7 @@ python train_mlm_flax_copy.py \
     --config_name="albert_config.json" \
     --tokenizer_name="./bpe-tokenizer-ka" \
     --dtype="float16" \
-    --token="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" \
+    --token="<token>" \
     --dataset_name="uonlp/CulturaX" \
     --dataset_config_name="ka" \
     --max_seq_length="64" \
