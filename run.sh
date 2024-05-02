@@ -22,4 +22,5 @@ python train_mlm_flax_copy.py \
     --max_seq_length="64" \
     --preprocessing_num_workers="14" \
     --overwrite_cache true \
-    --push_to_hub True
+    --push_to_hub True \
+    --hub_model_id albert-geo
