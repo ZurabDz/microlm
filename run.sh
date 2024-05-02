@@ -21,4 +21,5 @@ python train_mlm_flax_copy.py \
     --dataset_config_name="ka" \
     --max_seq_length="64" \
     --preprocessing_num_workers="14" \
-    --overwrite_cache true
+    --overwrite_cache true \
+    --push_to_hub True
