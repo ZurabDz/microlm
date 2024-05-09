@@ -1,26 +1,23 @@
-python train_mlm_flax_copy.py \
-    --output_dir="./output_dir" \
-    --overwrite_output_dir true \
+python train_mlm_flax.py \
+    --output_dir="./output_dir_2_continue" \
     --validation_split_percentage 0.1 \
     --do_train \
     --do_eval \
-    --per_device_train_batch_size="256" \
-    --per_device_eval_batch_size="256" \
-    --learning_rate="1e-3" \
-    --num_train_epochs 4 \
-    --warmup_steps="3000" \
-    --logging_steps="10" \
-    --save_steps="5000" \
+    --per_device_train_batch_size="1024" \
+    --per_device_eval_batch_size="1024" \
+    --learning_rate="9e-4" \
+    --num_train_epochs 20 \
+    --warmup_steps="500" \
+    --logging_steps="30" \
+    --save_steps="500" \
     --eval_steps="5000" \
     --seed="42" \
-    --config_name="albert_config.json" \
+    --model_name_or_path="/home/penguin/microlm/output_dir_2" \
     --tokenizer_name="./bpe-tokenizer-ka" \
     --dtype="float16" \
-    --token="<token>" \
+    --token="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" \
     --dataset_name="uonlp/CulturaX" \
     --dataset_config_name="ka" \
-    --max_seq_length="64" \
-    --preprocessing_num_workers="14" \
-    --overwrite_cache true \
-    --push_to_hub True \
-    --hub_model_id albert-geo
+    --max_seq_length="32" \
+    --preprocessing_num_workers="15" \
+    --overwrite_cache true 

@@ -4,7 +4,7 @@ from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 from transformers import PreTrainedTokenizerFast
 
-tokenizer = Tokenizer(BPE(vocab=32_768))
+tokenizer = Tokenizer(BPE())
 tokenizer.pre_tokenizer = Whitespace()
 
 special_tokens = dict(
@@ -15,8 +15,10 @@ special_tokens = dict(
         mask_token="[MASK]",
     )
 
-trainer = BpeTrainer(special_tokens=list(special_tokens.values()))
-tokenizer.train(files=['data.txt'], trainer=trainer)
+trainer = BpeTrainer(special_tokens=list(special_tokens.values()), vocab_size=32_768)
+tokenizer.train(files=['data/zdata.txt'], trainer=trainer)
+
+tokenizer.save('tok/tokenizer')
 
 wrapped_tokenizer = PreTrainedTokenizerFast(
     tokenizer_object=tokenizer,

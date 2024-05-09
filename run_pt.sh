@@ -1,0 +1,29 @@
+python train_mlm_torch.py \
+    --config_name="FacebookAI/roberta-base" \
+    --tokenizer_name="ZurabDz/bpe-tokenizer-ka" \
+    --token="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" \
+    --dataset_name="uonlp/CulturaX" \
+    --dataset_config_name="ka" \
+    --output_dir="./output" \
+    --validation_split_percentage 1 \
+    --max_seq_length 32 \
+    --preprocessing_num_workers 4 \
+    --mlm_probability 0.15 \
+    --overwrite_output_dir true \
+    --do_train \
+    --do_eval \
+    --per_device_train_batch_size 1024 \
+    --per_device_eval_batch_size 1024 \
+    --gradient_accumulation_steps 1 \
+    --num_train_epochs 20 \
+    --warmup_ratio  0.1 \
+    --learning_rate="9e-4" \
+    --logging_steps 30 \
+    --save_steps 500 \
+    --eval_steps 5000 \
+    --seed 42 \
+    --fp16 true \
+    --dataloader_num_workers 4 \
+    --dataloader_prefetch_factor 8 \
+    --include_tokens_per_second true \
+    --include_num_input_tokens_seen
