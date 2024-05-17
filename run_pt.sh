@@ -1,5 +1,6 @@
 python train_mlm_torch.py \
-    --config_name="FacebookAI/roberta-base" \
+    --model_type="albert" \
+    --config_overrides="max_position_embeddings=32" \
     --tokenizer_name="ZurabDz/bpe-tokenizer-ka" \
     --token="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" \
     --dataset_name="uonlp/CulturaX" \
@@ -26,4 +27,5 @@ python train_mlm_torch.py \
     --dataloader_num_workers 4 \
     --dataloader_prefetch_factor 8 \
     --include_tokens_per_second true \
-    --include_num_input_tokens_seen
+    --include_num_input_tokens_seen \
+    --push_to_hub true
