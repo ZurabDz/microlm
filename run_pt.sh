@@ -28,4 +28,5 @@ python train_mlm_torch.py \
     --dataloader_prefetch_factor 8 \
     --include_tokens_per_second true \
     --include_num_input_tokens_seen \
-    --push_to_hub true
+    --push_to_hub true \
+    --report_to tensorboard
