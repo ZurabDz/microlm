@@ -357,7 +357,7 @@ def main():
                 cache_dir=model_args.cache_dir,
                 token=model_args.token,
                 streaming=data_args.streaming,
-            ).select(range(100_000))
+            )
     else:
         data_files = {}
         if data_args.train_file is not None:
