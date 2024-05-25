@@ -1,32 +1,29 @@
 python train_mlm_torch.py \
     --model_type="albert" \
-    --config_overrides="max_position_embeddings=32" \
-    --tokenizer_name="ZurabDz/bpe-tokenizer-ka" \
+    --config_overrides="max_position_embeddings=32,hidden_size=768,intermediate_size=3072,num_attention_heads=12,num_hidden_layers=12" \
+    --tokenizer_name="ZurabDz/culturax_bpe_32768" \
     --token="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" \
-    --dataset_name="uonlp/CulturaX" \
-    --dataset_config_name="ka" \
-    --output_dir="./output" \
-    --validation_split_percentage 1 \
-    --max_seq_length 32 \
-    --preprocessing_num_workers 4 \
+    --dataset_name="./tokenized_dataset" \
+    --output_dir="./output2" \
     --mlm_probability 0.15 \
     --overwrite_output_dir true \
     --do_train \
     --do_eval \
-    --per_device_train_batch_size 1024 \
-    --per_device_eval_batch_size 1024 \
+    --per_device_train_batch_size 128 \
+    --per_device_eval_batch_size 128 \
     --gradient_accumulation_steps 1 \
-    --num_train_epochs 20 \
-    --warmup_ratio  0.1 \
+    --num_train_epochs 3 \
+    --warmup_ratio 0.1 \
     --learning_rate="9e-4" \
-    --logging_steps 30 \
-    --save_steps 500 \
-    --eval_steps 5000 \
+    --logging_steps 20 \
+    --save_steps 100 \
+    --evaluation_strategy steps \
+    --eval_steps 100 \
     --seed 42 \
     --fp16 true \
-    --dataloader_num_workers 4 \
-    --dataloader_prefetch_factor 8 \
-    --include_tokens_per_second true \
-    --include_num_input_tokens_seen \
     --push_to_hub true \
-    --report_to tensorboard
+    --report_to tensorboard \
+    --hub_token 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 \
+    --dataloader_prefetch_factor 8 \
+    --dataloader_num_workers 4 \
+    --max_eval_samples 100 
