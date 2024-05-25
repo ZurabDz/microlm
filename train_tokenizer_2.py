@@ -11,12 +11,12 @@ special_tokens = dict(
         mask_token="[MASK]",
     )
 
-tokenizer.train('data/zdata.txt', special_tokens=list(special_tokens.values()),
-                min_frequency=100, vocab_size=32_768, limit_alphabet=100)
+tokenizer.train('data/data.txt', special_tokens=list(special_tokens.values()),
+                min_frequency=100, vocab_size=32_768)
 
 wrapped_tokenizer = PreTrainedTokenizerFast(
     tokenizer_object=tokenizer,
-    model_max_length=1024 * 4,
+    model_max_length=1024 * 8,
     **special_tokens,
 )
 
