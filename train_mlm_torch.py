@@ -23,6 +23,7 @@ from transformers import (
     TrainingArguments,
     is_torch_xla_available,
     set_seed,
+    AutoConfig
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -209,13 +210,46 @@ def main():
 
     config = CONFIG_MAPPING[model_args.model_type]()
     logger.warning("You are instantiating a new config instance from scratch.")
-    if model_args.config_overrides is not None:
-        logger.info(f"Overriding config: {model_args.config_overrides}")
-        config.update_from_string(model_args.config_overrides)
-        logger.info(f"New config: {config}")
+    
+    
+    config_kwargs = {
+        "cache_dir": model_args.cache_dir,
+        "revision": model_args.model_revision,
+        "token": model_args.token,
+        "trust_remote_code": model_args.trust_remote_code,
+    }
+    
+    if model_args.config_name:
+        config = AutoConfig.from_pretrained(model_args.config_name, **config_kwargs)
+    elif model_args.model_name_or_path:
+        config = AutoConfig.from_pretrained(model_args.model_name_or_path, **config_kwargs)
+    else:
+        if model_args.config_overrides is not None:
+            logger.info(f"Overriding config: {model_args.config_overrides}")
+            config.update_from_string(model_args.config_overrides)
+            logger.info(f"New config: {config}")
 
-    logger.info("Training new model from scratch")
-    model = AutoModelForMaskedLM.from_config(config, trust_remote_code=model_args.trust_remote_code)
+    
+    if model_args.model_name_or_path:
+        torch_dtype = (
+            model_args.torch_dtype
+            if model_args.torch_dtype in ["auto", None]
+            else getattr(torch, model_args.torch_dtype)
+        )
+        model = AutoModelForMaskedLM.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+            cache_dir=model_args.cache_dir,
+            revision=model_args.model_revision,
+            token=model_args.token,
+            trust_remote_code=model_args.trust_remote_code,
+            torch_dtype=torch_dtype,
+            low_cpu_mem_usage=model_args.low_cpu_mem_usage,
+        )
+    else:
+        logger.info("Training new model from scratch")
+        model = AutoModelForMaskedLM.from_config(config, trust_remote_code=model_args.trust_remote_code)
 
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
