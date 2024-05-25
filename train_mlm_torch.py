@@ -222,10 +222,6 @@ def main():
             )
 
     set_seed(training_args.seed)
-
-    config = CONFIG_MAPPING[model_args.model_type]()
-    logger.warning("You are instantiating a new config instance from scratch.")
-    
     
     config_kwargs = {
         "cache_dir": model_args.cache_dir,
@@ -239,6 +235,9 @@ def main():
     elif model_args.model_name_or_path:
         config = AutoConfig.from_pretrained(model_args.model_name_or_path, **config_kwargs)
     else:
+        config = CONFIG_MAPPING[model_args.model_type]()
+        logger.warning("You are instantiating a new config instance from scratch.")
+    
         if model_args.config_overrides is not None:
             logger.info(f"Overriding config: {model_args.config_overrides}")
             config.update_from_string(model_args.config_overrides)
