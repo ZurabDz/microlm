@@ -62,21 +62,30 @@ class ModelArguments:
             )
         },
     )
+    
+    config_name: Optional[str] = field(
+        default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+    )
+    
     tokenizer_name: Optional[str] = field(
         default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
     )
+    
     cache_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
     )
+    
     use_fast_tokenizer: bool = field(
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
     )
+    
     model_revision: str = field(
         default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
     )
+    
     token: str = field(
         default=None,
         metadata={
@@ -86,6 +95,7 @@ class ModelArguments:
             )
         },
     )
+    
     trust_remote_code: bool = field(
         default=False,
         metadata={
@@ -96,6 +106,7 @@ class ModelArguments:
             )
         },
     )
+    
     torch_dtype: Optional[str] = field(
         default=None,
         metadata={
@@ -106,6 +117,7 @@ class ModelArguments:
             "choices": ["auto", "bfloat16", "float16", "float32"],
         },
     )
+    
     low_cpu_mem_usage: bool = field(
         default=False,
         metadata={
