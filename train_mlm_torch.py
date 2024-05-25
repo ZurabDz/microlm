@@ -150,6 +150,17 @@ class DataTrainingArguments:
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
+    
+class CustomTrainer(Trainer):
+    def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix: str = "eval"):
+        eval_output = super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
+        self.save_state()
+        self._save_optimizer_and_scheduler(self.args.output_dir)
+        self._save_rng_state(self.args.output_dir)
+        return eval_output
+    
+    def push_to_hub(self, **kwargs):
+        super().push_to_hub(**kwargs)
 
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
@@ -269,7 +280,8 @@ def main():
     )
 
     # Initialize our Trainer
-    trainer = Trainer(
+    trainer = CustomTrainer(
+    # trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
