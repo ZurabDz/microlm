@@ -40,6 +40,15 @@ class ModelArguments:
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune, or train from scratch.
     """
+    model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
+            )
+        },
+    )
+    
     model_type: Optional[str] = field(
         default=None,
         metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
@@ -106,6 +115,12 @@ class ModelArguments:
             )
         },
     )
+    
+    def __post_init__(self):
+        if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
+            raise ValueError(
+                "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
+            )
 
 
 @dataclass
