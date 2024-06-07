@@ -319,7 +319,7 @@ from pathlib import Path
 import shutil
 
 # FIXME: this should be controlled by argument parser
-root_dir = Path('tokenized_dataset')
+root_dir = Path('tokenized_dataset_v2')
 
 train_dir = root_dir / 'train'
 valid_dir = root_dir / 'validation'

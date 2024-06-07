@@ -179,6 +179,25 @@ class DataTrainingArguments:
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
     
+    
+import torch.nn as nn
+    
+def get_parameter_names(model, forbidden_layer_types):
+    """
+    Returns the names of the model parameters that are not inside a forbidden layer.
+    """
+    result = []
+    for name, child in model.named_children():
+        result += [
+            f"{name}.{n}"
+            for n in get_parameter_names(child, forbidden_layer_types)
+            if not isinstance(child, tuple(forbidden_layer_types))
+        ]
+    # Add model specific parameters (defined with nn.Parameter) since they are not in any child.
+    result += list(model._parameters.keys())
+    return result
+
+import bitsandbytes as bnb 
 class CustomTrainer(Trainer):
     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix: str = "eval"):
         eval_output = super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
@@ -186,6 +205,34 @@ class CustomTrainer(Trainer):
         self._save_optimizer_and_scheduler(self.args.output_dir)
         self._save_rng_state(self.args.output_dir)
         return eval_output
+    
+    def create_optimizer_and_scheduler(self, num_training_steps: int):
+        """
+        Setup the optimizer. We provide a default implementation based on the arguments of the training args.
+        """
+        if self.optimizer is None:
+            decay_parameters = get_parameter_names(self.model, [nn.LayerNorm])
+            decay_parameters = [name for name in decay_parameters if "bias" not in name]
+            optimizer_grouped_parameters = [
+                {
+                    "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
+                    "weight_decay": self.args.weight_decay,
+                },
+                {
+                    "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
+                    "weight_decay": 0.0,
+                },
+            ]
+            optimizer_cls, optimizer_kwargs = bnb.optim.Lion8bit, {
+                "betas": (self.args.adam_beta1, self.args.adam_beta2),
+                "lr": self.args.learning_rate,
+            }
+            self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
+
+        if self.lr_scheduler is None:
+            self.create_scheduler(num_training_steps=num_training_steps, optimizer=self.optimizer)
+
+        return self.optimizer, self.lr_scheduler
     
     def push_to_hub(self, **kwargs):
         super().push_to_hub(**kwargs)
