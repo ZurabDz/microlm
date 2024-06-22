@@ -206,33 +206,33 @@ class CustomTrainer(Trainer):
         self._save_rng_state(self.args.output_dir)
         return eval_output
     
-    def create_optimizer_and_scheduler(self, num_training_steps: int):
-        """
-        Setup the optimizer. We provide a default implementation based on the arguments of the training args.
-        """
-        if self.optimizer is None:
-            decay_parameters = get_parameter_names(self.model, [nn.LayerNorm])
-            decay_parameters = [name for name in decay_parameters if "bias" not in name]
-            optimizer_grouped_parameters = [
-                {
-                    "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
-                    "weight_decay": self.args.weight_decay,
-                },
-                {
-                    "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
-                    "weight_decay": 0.0,
-                },
-            ]
-            optimizer_cls, optimizer_kwargs = bnb.optim.Lion8bit, {
-                "betas": (self.args.adam_beta1, self.args.adam_beta2),
-                "lr": self.args.learning_rate,
-            }
-            self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
+    # def create_optimizer_and_scheduler(self, num_training_steps: int):
+    #     """
+    #     Setup the optimizer. We provide a default implementation based on the arguments of the training args.
+    #     """
+    #     if self.optimizer is None:
+    #         decay_parameters = get_parameter_names(self.model, [nn.LayerNorm])
+    #         decay_parameters = [name for name in decay_parameters if "bias" not in name]
+    #         optimizer_grouped_parameters = [
+    #             {
+    #                 "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
+    #                 "weight_decay": self.args.weight_decay,
+    #             },
+    #             {
+    #                 "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
+    #                 "weight_decay": 0.0,
+    #             },
+    #         ]
+    #         optimizer_cls, optimizer_kwargs = bnb.optim.Lion8bit, {
+    #             "betas": (self.args.adam_beta1, self.args.adam_beta2),
+    #             "lr": self.args.learning_rate,
+    #         }
+    #         self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
 
-        if self.lr_scheduler is None:
-            self.create_scheduler(num_training_steps=num_training_steps, optimizer=self.optimizer)
+    #     if self.lr_scheduler is None:
+    #         self.create_scheduler(num_training_steps=num_training_steps, optimizer=self.optimizer)
 
-        return self.optimizer, self.lr_scheduler
+    #     return self.optimizer, self.lr_scheduler
     
     def push_to_hub(self, **kwargs):
         super().push_to_hub(**kwargs)
