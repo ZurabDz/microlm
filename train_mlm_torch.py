@@ -197,7 +197,7 @@ def get_parameter_names(model, forbidden_layer_types):
     result += list(model._parameters.keys())
     return result
 
-import bitsandbytes as bnb 
+# import bitsandbytes as bnb 
 class CustomTrainer(Trainer):
     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix: str = "eval"):
         eval_output = super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
