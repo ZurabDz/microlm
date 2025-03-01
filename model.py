@@ -1,4 +1,3 @@
-
 import dataclasses
 import typing as tp
 import jax.numpy as jnp
@@ -49,15 +48,14 @@ def shift_right(x: jax.Array, axis: int = 1):
 
 
 class AddPositionalEmbs(nnx.Module):
-    def __init__(self, config, *, decode=False, rngs):
+    def __init__(self, config, *, decode=False):
         self.config = config
         self.decode = decode
         self.init_func = sinusoidal_init(config.max_len)
-        self.rngs = rngs
 
-    def __call__(self, inputs):
+    def __call__(self, inputs, rngs):
         length = inputs.shape[1]
-        pos_embedding = self.init_func(self.rngs.params(), (self.config.max_len, self.config.emb_dim))
+        pos_embedding = self.init_func(rngs.params(), (self.config.max_len, self.config.emb_dim))
 
         if self.decode:
             _, _, df = pos_embedding.shape
@@ -116,7 +114,6 @@ class EncoderDecoderBlock(nnx.Module):
         z = self.mlp(z, rngs)
 
         return z
-    
 
 class Decoder(nnx.Module):
     def __init__(self, config, *, decode = False, rngs):
@@ -125,7 +122,7 @@ class Decoder(nnx.Module):
         self.output_embed = nnx.Embed(num_embeddings=config.vocab_size, 
                                       features=config.emb_dim,
                                       rngs=rngs)
-        self.posembed_out = AddPositionalEmbs(config=config, rngs=rngs)
+        self.posembed_out = AddPositionalEmbs(config=config)
         self.dropout = nnx.Dropout(rate=config.dropout_rate)
 
         for idx in range(config.num_layers):
@@ -138,8 +135,8 @@ class Decoder(nnx.Module):
         y = inputs.astype('int32')
         if not self.decode:
             y = shift_right(y)
-        y = self.output_embed(inputs)
-        y = self.posembed_out(y)
+        y = self.output_embed(y)
+        y = self.posembed_out(y, rngs=rngs)
         y = self.dropout(y, rngs=rngs)
 
         for idx in range(self.config.num_layers):
@@ -150,9 +147,8 @@ class Decoder(nnx.Module):
 
         logits = self.output_embed.attend(y)
         logits = logits / jnp.sqrt(y.shape[-1])
-
         return logits
-    
+
 
 class TransformerLM(nnx.Module):
     def __init__(self, config, *, decode=False, rngs):
@@ -170,4 +166,5 @@ class TransformerLM(nnx.Module):
             )
             
         logits = self.decoder(inputs, rngs, decoder_mask=decoder_mask)
+
         return logits
