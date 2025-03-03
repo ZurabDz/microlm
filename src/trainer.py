@@ -135,3 +135,24 @@ def compute_metrics(logits, labels, weights, label_smoothing=0.0):
     'denominator': weight_sum,
   }
   return metrics
+
+
+def setup_initial_state(
+  constructor,
+  tx,
+  config,
+  rng: jax.Array,
+  mesh: jax.sharding.Mesh,
+) -> tuple[TrainState, TrainState]:
+  with mesh:
+    model = constructor(config, rng)
+    graphdef, params, rest = nnx.split(model, nnx.Param, ...)
+    state = TrainState.create(
+      apply_fn=graphdef.apply, params=params, tx=tx, graphdef=graphdef, rest=rest
+    )
+    state = jax.tree.map(_to_array, state)
+    state_spec = nnx.get_partition_spec(state)
+    state = jax.lax.with_sharding_constraint(state, state_spec)
+
+  state_sharding = nnx.get_named_sharding(state, mesh)
+  return state, state_sharding

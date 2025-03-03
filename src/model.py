@@ -1,25 +1,9 @@
-import dataclasses
 import typing as tp
 import jax.numpy as jnp
 from flax import nnx
 import numpy as np
 import jax
 from jax import lax
-
-
-@dataclasses.dataclass
-class TransformerConfig:
-    vocab_size: int
-    logits_via_embedding: bool = False
-    dtype: tp.Any = jnp.float32
-    emb_dim: int = 512
-    num_heads: int = 8
-    num_layers: int = 3
-    qkv_dim: int = 512
-    mlp_dim: int = 2048
-    max_len: int = 2048
-    dropout_rate: float = 0.1
-    attention_dropout_rate: float = 0.1
 
 
 def sinusoidal_init(max_len=2048, min_scale=1.0, max_scale=10000.0):
@@ -74,8 +58,24 @@ class AddPositionalEmbs(nnx.Module):
 class MlpBlock(nnx.Module):
     def __init__(self, config, rngs):
         self.config = config
-        self.linear1 = nnx.Linear(config.emb_dim, config.mlp_dim, rngs=rngs)
-        self.linear2 = nnx.Linear(config.mlp_dim, config.emb_dim, rngs=rngs)
+        self.linear1 = nnx.Linear(
+            config.emb_dim,
+            config.mlp_dim, 
+            dtype=config.dtype,
+            kernel_init=nnx.with_partitioning(
+                config.kernel_init,
+                config.axis_rules('embed', 'mlp')
+            ),
+            rngs=rngs)
+        self.linear2 = nnx.Linear(
+            config.mlp_dim,
+            config.emb_dim,
+            dtype=config.dtype,
+            kernel_init=nnx.with_partitioning(
+                config.kernel_init,
+                config.axis_rules('embed', 'mlp')
+            ),
+            rngs=rngs)
         self.dropout = nnx.Dropout(rate=config.dropout_rate)
 
     def __call__(self, inputs, rngs):
@@ -91,8 +91,30 @@ class MlpBlock(nnx.Module):
 class EncoderDecoderBlock(nnx.Module):
     def __init__(self, config, rngs):
         self.config = config
-        self.ln1 = nnx.LayerNorm(num_features=config.emb_dim, rngs=rngs)
-        self.ln2 = nnx.LayerNorm(num_features=config.emb_dim, rngs=rngs)
+        self.ln1 = nnx.LayerNorm(
+            num_features=config.emb_dim, 
+            dtype=config.dtype,
+            bias_init=nnx.with_partitioning(
+                nnx.initializers.zeros_init(),
+                config.axis_rules('embed')
+            ),
+            scale_init=nnx.with_partitioning(
+                nnx.initializers.ones_init(),
+                config.axis_rules('embed')
+            ),
+            rngs=rngs)
+        self.ln2 = nnx.LayerNorm(
+            num_features=config.emb_dim,
+            dtype=config.dtype,
+            bias_init=nnx.with_partitioning(
+                nnx.initializers.zeros_init(),
+                config.axis_rules('embed'),
+            ),
+            scale_init=nnx.with_partitioning(
+                nnx.initializers.ones_init(),
+                config.axis_rules('embed'),
+            ),
+            rngs=rngs)
         self.attention = nnx.MultiHeadAttention(
             num_heads=config.num_heads,
             in_features=config.emb_dim,
@@ -100,6 +122,13 @@ class EncoderDecoderBlock(nnx.Module):
             use_bias=False,
             broadcast_dropout=False,
             dropout_rate=config.attention_dropout_rate,
+            dtype=config.dtype,
+            kernel_init=nnx.with_partitioning(
+                config.kernel_init, config.axis_rules('embed', 'kv')
+            ),
+            bias_init=nnx.with_partitioning(
+                config.bias_init, config.axis_rules('embed')
+            ),
             rngs=rngs,
             )
         self.mlp = MlpBlock(config=config, rngs=rngs)
@@ -121,6 +150,10 @@ class Decoder(nnx.Module):
         self.decode = decode
         self.output_embed = nnx.Embed(num_embeddings=config.vocab_size, 
                                       features=config.emb_dim,
+                                      embedding_init=nnx.with_partitioning(
+                                            nnx.initializers.normal(stddev=1.0),
+                                            config.axis_rules('vocab', 'embed'),
+                                        ),
                                       rngs=rngs)
         self.posembed_out = AddPositionalEmbs(config=config)
         self.dropout = nnx.Dropout(rate=config.dropout_rate)
@@ -129,7 +162,16 @@ class Decoder(nnx.Module):
             layer = EncoderDecoderBlock(config,rngs)
             setattr(self, f'encoderdecoderblock_{idx}', layer)
 
-        self.encoderdecoder_norm = nnx.LayerNorm(num_features=config.emb_dim, rngs=rngs)
+        self.encoderdecoder_norm = nnx.LayerNorm(
+            num_features=config.emb_dim, 
+            dtype=config.dtype,
+            bias_init=nnx.with_partitioning(
+                nnx.initializers.zeros_init(), config.axis_rules('embed')
+            ),
+            scale_init=nnx.with_partitioning(
+                nnx.initializers.ones_init(), config.axis_rules('embed')
+            ),
+            rngs=rngs)
 
     def __call__(self, inputs, rngs, decoder_mask=None):
         y = inputs.astype('int32')
@@ -138,6 +180,8 @@ class Decoder(nnx.Module):
         y = self.output_embed(y)
         y = self.posembed_out(y, rngs=rngs)
         y = self.dropout(y, rngs=rngs)
+
+        y = y.astype(self.config.dtype)
 
         for idx in range(self.config.num_layers):
             layer = getattr(self, f'encoderdecoderblock_{idx}')
@@ -167,4 +211,4 @@ class TransformerLM(nnx.Module):
             
         logits = self.decoder(inputs, rngs, decoder_mask=decoder_mask)
 
-        return logits
+        return logits.astype(self.config.dtype)

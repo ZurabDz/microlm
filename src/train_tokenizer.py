@@ -13,7 +13,7 @@ tokenizer.normalizer = NFKC()
 tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
 tokenizer.decoder = decoders.ByteLevel()
 
-data = ds['test']
+data = ds['train'].select(range(0, 400_000))
 
 trainer = BpeTrainer(vocab_size=30_000, min_frequency=2, show_progress=True,
                      special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"],

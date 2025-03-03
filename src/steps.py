@@ -1,4 +1,4 @@
-from trainer import (
+from .trainer import (
     TrainState,
     compute_weighted_cross_entropy,
     compute_metrics
