@@ -16,11 +16,11 @@ class MeshRules:
 @dataclasses.dataclass
 class TransformerConfig:
     vocab_size: int
-    emb_dim: int = 256
-    num_heads: int = 4
-    num_layers: int = 3
-    qkv_dim: int = 256
-    mlp_dim: int = 1024
+    emb_dim: int = 512
+    num_heads: int = 8
+    num_layers: int = 6
+    qkv_dim: int = 512
+    mlp_dim: int = 2048
     dropout_rate: float = 0.1
     attention_dropout_rate: float = 0.1
     max_len: int = 128
