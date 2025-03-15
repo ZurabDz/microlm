@@ -10,6 +10,7 @@ import jax.numpy as jnp
 
 class TrainState(train_state.TrainState):
   graphdef: nnx.GraphDef
+  keys: nnx.RngKey
   rest: nnx.State
 
 
@@ -146,9 +147,9 @@ def setup_initial_state(
 ) -> tuple[TrainState, TrainState]:
   with mesh:
     model = constructor(config, rng)
-    graphdef, params, rest = nnx.split(model, nnx.Param, ...)
+    graphdef, params, keys, rest = nnx.split(model, nnx.Param, nnx.RngKey, ...)
     state = TrainState.create(
-      apply_fn=graphdef.apply, params=params, tx=tx, graphdef=graphdef, rest=rest
+      apply_fn=graphdef.apply, params=params, tx=tx, graphdef=graphdef, keys=keys, rest=rest
     )
     state = jax.tree.map(_to_array, state)
     state_spec = nnx.get_partition_spec(state)

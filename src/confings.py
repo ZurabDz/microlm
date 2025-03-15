@@ -37,7 +37,7 @@ class TransformerConfig:
 
 @dataclasses.dataclass
 class TrainerConfig:
-    train_batch_size: int = 16
+    train_batch_size: int = 32
     eval_batch_size: int = 16
     learning_rate: float = 0.0016
     warmup_steps: int = 1000

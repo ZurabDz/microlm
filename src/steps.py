@@ -6,7 +6,7 @@ from .trainer import (
 import jax.numpy as jnp
 import jax
 from flax import nnx
-
+from .temperature_sampler import temperature_sample
 
 def train_step(
   state: TrainState,
@@ -24,7 +24,7 @@ def train_step(
 
   def loss_fn(params):
     """loss function used for training."""
-    module = nnx.merge(state.graphdef, params, state.rest)
+    module = nnx.merge(state.graphdef, params, state.keys, state.rest)
     module.set_attributes(deterministic=False, decode=False)
     logits = module(
       inner,
@@ -47,18 +47,71 @@ def train_step(
 
   return new_state, metrics
 
+from typing_extensions import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class HasCache(Protocol):
+  def init_cache(self, input_shape, dtype = jnp.float32): ...
 
 def eval_step(
-  params: nnx.State,
+  state: TrainState,
   batch,
-  graphdef: nnx.GraphDef,
   label_smoothing=0.0,
 ):
   """Calculate evaluation metrics on a batch."""
-  inputs = batch['inputs']
-  weights = jnp.where(inputs > 0, 1.0, 0.0)
-  module = nnx.merge(graphdef, params)
+  weights = jnp.where(batch > 0, 1.0, 0.0)
+  module = nnx.merge(state.graphdef, state.params, state.keys, state.rest)
   module.set_attributes(deterministic=True, decode=False)
-  logits = module(inputs)
+  logits = module(batch, rngs=nnx.Rngs(0))
 
-  return compute_metrics(logits, inputs, weights, label_smoothing)
+  return compute_metrics(logits, batch, weights, label_smoothing)
+
+
+def predict_step(
+  inputs,
+  params: nnx.State,
+  rngkey: jax.Array,
+  graphdef: nnx.GraphDef,
+  eos_id: int,
+  max_decode_len: int,
+  config,
+  temperature: float,
+  top_k: int,
+):
+  """Predict language model on a batch."""
+  module = nnx.merge(graphdef, params)
+
+  # TODO(cgarciae): check how pytorch does this.
+  for _path, m in module.iter_modules():
+    if isinstance(m, HasCache):
+      input_shape = (inputs.shape[0], max_decode_len, config.emb_dim)
+      m.init_cache(input_shape, dtype=config.dtype)
+
+  graphdef, params, cache = nnx.split(module, nnx.Param, nnx.Cache)
+
+  def tokens_ids_to_logits(flat_ids, cache: nnx.State):
+    """Token slice to logits from decoder model."""
+    # --> [batch * beam, 1, vocab]
+    module = nnx.merge(graphdef, params, cache)
+    module.set_attributes(deterministic=True, decode=True)
+    logits = module(flat_ids)
+    cache = nnx.state(module, nnx.Cache)
+    # Remove singleton sequence-length dimension:
+    # [batch, 1, vocab] --> [batch, vocab]
+    logits = logits.squeeze(axis=1)
+    return logits, cache
+
+  # Using the above-defined single-step decoder function, run a
+  # beam search over possible sequences given input encoding.
+  seqs = temperature_sample(
+    inputs,
+    cache,
+    tokens_ids_to_logits,
+    rngkey,
+    temperature=temperature,
+    topk=top_k,
+    eos_token=eos_id,
+  )
+
+  return seqs
