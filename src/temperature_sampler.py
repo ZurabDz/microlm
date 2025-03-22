@@ -75,7 +75,6 @@ def temperature_sample(
     # Have we reached max decoding length?
     not_at_end = i < max_decode_len - 1
 
-    jax.debug.print("ENDEND? : {}", not_at_end)
     # Have all sampled sequences reached an end marker?
     all_sequences_ended = jnp.all(ended)
     return not_at_end & (~all_sequences_ended)
@@ -105,8 +104,6 @@ def temperature_sample(
         jnp.int32
       )
 
-    jax.debug.print("current token: {}", cur_token)
-    jax.debug.print("{}", next_token)
     # Only use sampled tokens if we're past provided prefix tokens.
     out_of_prompt = sequences[:, i + 1] == 0
     next_token = (
