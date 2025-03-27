@@ -1,10 +1,10 @@
 from itertools import chain
 
-def process_dataset(dataset, tokenizer, n_proc=8):
+def process_dataset(dataset, tokenizer, n_proc=8, max_len=128):
     def tokenize_and_pad(batch):
         return {'ids': tokenizer(batch['text'])['input_ids']}
 
-    def group_texts(examples, block_size=128):
+    def group_texts(examples, block_size=max_len):
         # Concatenate all texts.
         concatenated_examples = {k: list(chain(*examples[k])) for k in examples.keys()}
         total_length = len(concatenated_examples[list(examples.keys())[0]])
